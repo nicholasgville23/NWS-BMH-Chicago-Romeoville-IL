@@ -1,0 +1,22 @@
+{
+  "bea800e3": {
+    "id": "bea800e3",
+    "header": {
+      "category_code": "PT",
+      "originating_center": "US",
+      "index": "01",
+      "office_id": "KLOT",
+      "product_designator": "SPS",
+      "product_number": "001",
+      "product_name": "Product Text",
+      "issue_time": "20260806200159",
+      "expire_time": ""
+    },
+    "body": "WWUS53 KLOT 451824\nSPSLOT\n\nSpecial Weather Statement\nNational Weather Service Chicago/Romeoville\n300 PM CDT Thu Aug 6 2026\n\nINC127-061909-\nPorter-\n300 PM CDT Thu Aug 6 2026\n\n...A STRONG THUNDERSTORM WILL IMPACT PORTIONS OF PORTER COUNTY UNTIL \n400 PM CDT...\n\nAt 300 PM CDT, a strong thunderstorm was located near Hebron, or 13\nmiles southeast of Crown Point, moving northeast at 40 mph.\n\nWind gusts of 50 to 55 mph and pea size hail are possible with this\nstorm.\n\nLocations impacted include...\nPortage, Valparaiso, Chesterton, Lakes of the Four Seasons, South\nHaven, Porter, Hebron and Shorewood Forest.\n\nIf outdoors, consider seeking shelter inside a building.\n\nLAT...LON 4126 8721 4131 8715 4127 8706 4125 8700\n      4125 8694 4133 8694 4143 8694 4154 8694\n      4166 8694 4170 8694 4168 8702 4166 8710\n      4165 8716 4164 8721 4157 8721 4148 8721\n      4141 8722 4136 8722 4133 8722 4126 8721\nTIME...MOT...LOC 1824Z 204DEG 30KT 4126 8721\n\n$$\n\n\n\nUse proper NWS/AWIPS formatting conventions.",
+    "created_at": "2026-08-06T15:01:59.504192",
+    "transmitted": false,
+    "transmit_time": null,
+    "category": "Weather",
+    "priority": 5
+  }
+}

@@ -1,0 +1,9 @@
+requests
+Flask
+enum
+pyaudio
+pyttsx3
+sounddevice
+soundfile
+gtts
+folium

@@ -1,0 +1,18 @@
+{
+  "Illinois": {
+    "Cook": "17031",
+    "DuPage": "17043",
+    "Grundy": "17063",
+    "Kane": "17089",
+    "Kendall": "17093",
+    "Lake": "17097",
+    "McHenry": "17111",
+    "Will": "17197"
+  },
+  "Indiana": {
+    "Lake": "18089",
+    "Porter": "18127",
+    "Newton": "18111",
+    "Jasper": "18073"
+  }
+}
