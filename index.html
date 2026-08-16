@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>IEMBot Monitor - KLOT</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;background:#f8f9fb;color:#222;padding:20px}
+    .card{background:#fff;border:1px solid #e3e6ea;padding:16px;border-radius:6px;max-width:900px;margin:16px auto}
+    pre.cmd{background:#0b1220;color:#9ff;padding:12px;border-radius:6px;overflow:auto}
+    .hint{color:#666;font-size:0.9rem}
+    .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-top: 10px; }
+    .badge { padding: 8px; border-radius: 4px; text-align: center; color: white; font-weight: bold; }
+    .new { background: #28a745; }
+    .con { background: #17a2b8; }
+    .can { background: #dc3545; }
+    .exp { background: #6c757d; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>IEMBot Monitor - KLOT (Chicago)</h1>
+    <p>This monitor tracks NWS Chicago/Romeoville (KLOT) weather alerts via the Iowa Environmental Mesonet (IEM).</p>
+
+    <h2>Alert Status</h2>
+    <div class="status-grid">
+      <div class="badge new">NEW</div>
+      <div class="badge con">CON</div>
+      <div class="badge can">CAN</div>
+      <div class="badge exp">EXP</div>
+    </div>
+    <p class="hint">Monitoring live feed at: <a href="https://weather.im/iembot">https://weather.im/iembot</a></p>
+  </div>
+
+  <div class="card">
+    <h2>Local Instance</h2>
+    <p>This site is hosted locally at <strong>192.168.10.145:8080</strong>. To restart the local service from your directory <code>C:\Users\nicho\Downloads\NWS-BMH-Chicago-Romeoville-IL-main\NWS-BMH-Chicago-Romeoville-IL-main\web\iembot</code>, run:</p>
+    <pre class="cmd">python -m http.server 8080</pre>
+  </div>
+
+  <div class="card">
+    <h2>Quick links</h2>
+    <ul>
+      <li><a href="/wfo/lot/">LOT Forecast / Map (local)</a></li>
+      <li><a href="https://weather.im/iembot">Official IEMBot Feed</a></li>
+    </ul>
+  </div>
+</body>
+</html>
