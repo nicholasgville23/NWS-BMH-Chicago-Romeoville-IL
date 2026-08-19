@@ -1,7 +1,7 @@
 """
-KLOT LOTIEM TEXT WORKSTATION - Tkinter GUI Main (skeleton)
+KLOT LOTIEM TEXT WORKSTATION - Tkinter GUI Main (enhanced)
 Run: python text_workstation_main.py
-This is a functional skeleton implementing the requested UI elements and stubs for actions.
+This update adds: station WXK89, SAME/EAS builder stub, listening-area options, broadcast cycles UI, static messages list, live queue controls, SAME retone / 1050 Hz / Silent Interrupt stubs, and SEND SANE ALERT action.
 """
 
 import json
@@ -28,7 +28,7 @@ class TextWorkstationApp(tk.Tk):
         super().__init__()
         self.config = config
         self.title('KLOT LOTIEM TEXT WORKSTATION')
-        self.geometry('1200x800')
+        self.geometry('1300x900')
 
         self.create_menu()
         self.create_widgets()
@@ -44,6 +44,8 @@ class TextWorkstationApp(tk.Tk):
         filemenu = tk.Menu(menubar, tearoff=0)
         filemenu.add_command(label='Restore UI', command=self.restore_ui)
         filemenu.add_separator()
+        filemenu.add_command(label='Settings', command=self.open_settings)
+        filemenu.add_separator()
         filemenu.add_command(label='Exit', command=self.quit)
         menubar.add_cascade(label='System', menu=filemenu)
         self.config(menu=menubar)
@@ -53,7 +55,7 @@ class TextWorkstationApp(tk.Tk):
         main_pane.pack(fill=tk.BOTH, expand=True)
 
         # Left frame - Compose and Dispatch
-        left_frame = ttk.Frame(main_pane, width=700)
+        left_frame = ttk.Frame(main_pane, width=800)
         main_pane.add(left_frame, weight=3)
 
         title = ttk.Label(left_frame, text='KLOT LOTIEM TEXT WORKSTATION', font=('Segoe UI', 14, 'bold'))
@@ -107,7 +109,7 @@ class TextWorkstationApp(tk.Tk):
         ttk.Button(action_frame, text='View Sent Alerts / Edit Sent Alerts', command=self.view_sent_alerts).pack(side=tk.RIGHT, padx=4)
 
         # Right frame - AWIPS / Tools / BMH Controls
-        right_frame = ttk.Frame(main_pane, width=400)
+        right_frame = ttk.Frame(main_pane, width=500)
         main_pane.add(right_frame, weight=1)
 
         # AWIPS tools section
@@ -128,6 +130,19 @@ class TextWorkstationApp(tk.Tk):
 
         ttk.Button(awips_frame, text='Generate AWIPS Header', command=self.generate_awips_header).pack(fill=tk.X, padx=4, pady=6)
 
+        # SAME / EAS builder
+        sane_frame = ttk.LabelFrame(awips_frame, text='SAME / EAS Builder')
+        sane_frame.pack(fill=tk.X, padx=4, pady=6)
+        ttk.Label(sane_frame, text='UGC for NE IL:').pack(anchor='w')
+        self.ugc_ne_entry = ttk.Entry(sane_frame)
+        self.ugc_ne_entry.insert(0, self.config.get('sane_builder', {}).get('ugc_ne_il',''))
+        self.ugc_ne_entry.pack(fill=tk.X)
+        ttk.Label(sane_frame, text='UGC for NW IN:').pack(anchor='w')
+        self.ugc_nw_entry = ttk.Entry(sane_frame)
+        self.ugc_nw_entry.insert(0, self.config.get('sane_builder', {}).get('ugc_nw_in',''))
+        self.ugc_nw_entry.pack(fill=tk.X)
+        ttk.Button(sane_frame, text='SEND SAME ALERT', command=self.send_sane_alert).pack(fill=tk.X, pady=4)
+
         # BMH Network quick-launch
         bmh_frame = ttk.LabelFrame(right_frame, text='BMH Network')
         bmh_frame.pack(fill=tk.BOTH, expand=True, padx=8, pady=8)
@@ -141,6 +156,14 @@ class TextWorkstationApp(tk.Tk):
         self.station_list.bind('<Double-Button-1>', self.open_station_controller_from_list)
 
         ttk.Button(bmh_frame, text='Open BMH Window', command=self.open_bmh_network).pack(fill=tk.X, padx=4, pady=2)
+
+        # Listening area options
+        listen_frame = ttk.LabelFrame(bmh_frame, text='Listening Area')
+        listen_frame.pack(fill=tk.X, padx=4, pady=6)
+        self.listen_filter_var = tk.BooleanVar(value=self.config.get('listening_area', {}).get('enable_filtering', True))
+        self.listen_allow_var = tk.BooleanVar(value=self.config.get('listening_area', {}).get('allow_routine_without_fips', True))
+        ttk.Checkbutton(listen_frame, text='Enable listening-area filtering', variable=self.listen_filter_var).pack(anchor='w')
+        ttk.Checkbutton(listen_frame, text='Allow routine products without FIPS/zone coding', variable=self.listen_allow_var).pack(anchor='w')
 
         # Bottom status
         status_frame = ttk.Frame(self)
@@ -172,7 +195,11 @@ class TextWorkstationApp(tk.Tk):
 
     def generate_awips_header(self):
         awips = self.config.get('default_awips', {})
-        header = f"/{awips.get('type')} {awips.get('CCCC')} {awips.get('BBB')}{awips.get('BBB_version')}\nWSFO: {awips.get('wsfo_id')}\nProduct: {awips.get('product_designator')}\nAddressee: {self.addressee_entry.get()}"
+        # Simple TTAAii-formatted header with current time (UTC) for TTAAii placeholder
+        utc = datetime.utcnow()
+        # TTAAii - this is a simplified placeholder: TTAAii -> 'TTAA00' with hhmm
+        ttaaii = f"TTAA{utc.strftime('%H%M')}"
+        header = f"/{ttaaii} {awips.get('CCCC')} {awips.get('BBB')}{awips.get('BBB_version')}\nWSFO: {awips.get('wsfo_id')}\nProduct: {awips.get('product_designator')}\nAddressee: {self.addressee_entry.get()}"
         self.text_widget.insert('1.0', header + '\n\n')
         self.status('AWIPS header generated')
 
@@ -285,6 +312,21 @@ class TextWorkstationApp(tk.Tk):
     def status(self, msg):
         self.status_label.config(text=f"{datetime.now().strftime('%H:%M:%S')} - {msg}")
 
+    def open_settings(self):
+        messagebox.showinfo('Settings', 'Open system settings (stub)')
+
+    def show_info(self, text):
+        messagebox.showinfo('Info', text)
+
+    def send_sane_alert(self):
+        # Build a simple SAME/EAS message preview using UGC entries
+        ugc_ne = self.ugc_ne_entry.get().strip()
+        ugc_nw = self.ugc_nw_entry.get().strip()
+        msg = f"SAME ALERT PREVIEW:\nNE IL: {ugc_ne}\nNW IN: {ugc_nw}\nCustom Message: {self.text_widget.get('1.0', '1.400').strip()}"
+        # placeholder for actual SAME send
+        messagebox.showinfo('SAME Alert', msg)
+        self.status('SAME alert prepared (not transmitted)')
+
 
 # --- Dialogs ---
 class WarnGenDialog(tk.Toplevel):
@@ -341,6 +383,10 @@ class PolygonToolDialog(tk.Toplevel):
         ttk.Label(self, text='Polygon Name:').pack(anchor='w', padx=8, pady=4)
         self.name_entry = ttk.Entry(self)
         self.name_entry.pack(fill=tk.X, padx=8)
+        ttk.Label(self, text='Create Type:').pack(anchor='w', padx=8, pady=4)
+        self.type_cb = ttk.Combobox(self, values=['Single Storm','Line of Storms'])
+        self.type_cb.current(0)
+        self.type_cb.pack(fill=tk.X, padx=8)
         ttk.Label(self, text='Enter coordinates (lat,lon) one per line:').pack(anchor='w', padx=8, pady=4)
         self.coords_text = tk.Text(self, height=8)
         self.coords_text.pack(fill=tk.BOTH, padx=8, pady=4)
@@ -351,11 +397,12 @@ class PolygonToolDialog(tk.Toplevel):
 
     def on_create(self):
         name = self.name_entry.get().strip() or 'polygon'
+        poly_type = self.type_cb.get()
         coords = [line.strip() for line in self.coords_text.get('1.0', tk.END).splitlines() if line.strip()]
         if not coords:
             messagebox.showwarning('Polygon', 'Enter at least one coordinate')
             return
-        self.result = {'name': name, 'coords': coords}
+        self.result = {'name': name, 'type': poly_type, 'coords': coords}
         self.destroy()
 
 
@@ -386,9 +433,12 @@ class BMHNetworkWindow(tk.Toplevel):
     def __init__(self, parent, config):
         super().__init__(parent)
         self.title('BMH Network')
-        self.geometry('900x600')
+        self.geometry('1000x700')
         ttk.Label(self, text='BMH Network Controls', font=('Segoe UI', 12, 'bold')).pack(anchor='nw', padx=8, pady=6)
-        left = ttk.Frame(self)
+        container = ttk.Frame(self)
+        container.pack(fill=tk.BOTH, expand=True)
+
+        left = ttk.Frame(container)
         left.pack(side=tk.LEFT, fill=tk.Y, padx=8, pady=8)
 
         ttk.Label(left, text='Global Network Controls').pack(anchor='nw')
@@ -404,8 +454,15 @@ class BMHNetworkWindow(tk.Toplevel):
         self.ticker_entry.pack(fill=tk.X)
         ttk.Button(left, text='TRANSMIT', command=lambda: messagebox.showinfo('Transmit','Transmit (stub)')).pack(fill=tk.X, pady=6)
 
+        ttk.Label(left, text='SAME Options').pack(anchor='nw', pady=4)
+        same_frame = ttk.Frame(left)
+        same_frame.pack(fill=tk.X)
+        ttk.Button(same_frame, text='SAME RETONE', command=lambda: messagebox.showinfo('SAME','Retone (stub)')).pack(side=tk.LEFT, padx=2)
+        ttk.Button(same_frame, text='1050 HZ', command=lambda: messagebox.showinfo('1050Hz','1050 Hz toggle (stub)')).pack(side=tk.LEFT, padx=2)
+        ttk.Button(same_frame, text='SILENT INTERRUPT', command=lambda: messagebox.showinfo('Silent','Silent interrupt (stub)')).pack(side=tk.LEFT, padx=2)
+
         # Right - Station status / controls
-        right = ttk.Frame(self)
+        right = ttk.Frame(container)
         right.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=8, pady=8)
         ttk.Label(right, text=f"Station Controller - {config.get('station')}", font=('Segoe UI', 11, 'bold')).pack(anchor='nw')
 
@@ -420,6 +477,7 @@ class BMHNetworkWindow(tk.Toplevel):
         ttk.Button(tx_frame, text='START TX').pack(side=tk.LEFT, padx=4, pady=4)
         ttk.Button(tx_frame, text='STOP TX').pack(side=tk.LEFT, padx=4, pady=4)
         ttk.Button(tx_frame, text='NEXT PRODUCT').pack(side=tk.LEFT, padx=4, pady=4)
+        ttk.Button(tx_frame, text='RESTART SERVICE').pack(side=tk.LEFT, padx=4, pady=4)
 
         # Operational modes list
         modes_frame = ttk.LabelFrame(right, text='Operational Modes')
@@ -429,15 +487,55 @@ class BMHNetworkWindow(tk.Toplevel):
         for m in modes:
             self.mode_list.insert(tk.END, m)
         self.mode_list.pack(fill=tk.BOTH, expand=True)
+        mode_btns = ttk.Frame(modes_frame)
+        mode_btns.pack(fill=tk.X, pady=4)
+        ttk.Button(mode_btns, text='NEW MODE', command=lambda: messagebox.showinfo('Mode','New mode (stub)')).pack(side=tk.LEFT, padx=2)
+        ttk.Button(mode_btns, text='DELETE MODE', command=lambda: messagebox.showinfo('Mode','Delete mode (stub)')).pack(side=tk.LEFT, padx=2)
+        ttk.Button(mode_btns, text='RESET MODE', command=lambda: messagebox.showinfo('Mode','Reset mode (stub)')).pack(side=tk.LEFT, padx=2)
 
-        ttk.Button(right, text='Refresh Now', command=lambda: messagebox.showinfo('Refresh','Refresh now (stub)')).pack(pady=4)
+        # Static messages
+        static_frame = ttk.LabelFrame(right, text='Static Messages')
+        static_frame.pack(fill=tk.BOTH, expand=True, pady=8)
+        static_ids = ['ADVANCE','EMR_STATION_ID','PREPAREDNESS_ACTIONS','SLGT_STATION_ID','OFF_AIR','STATION_ID','SHORT_ID','LONG_ID','SEVERE_MESSAGE','CURRENT_TIME']
+        self.static_list = tk.Listbox(static_frame, height=6)
+        for s in static_ids:
+            self.static_list.insert(tk.END, s)
+        self.static_list.pack(fill=tk.BOTH, expand=True)
+
+        # Live Queue
+        live_frame = ttk.LabelFrame(left, text='Live Queue / Player')
+        live_frame.pack(fill=tk.X, pady=8)
+        ttk.Label(live_frame, text='Current Playing:').pack(anchor='w')
+        self.current_play = ttk.Combobox(live_frame, values=static_ids)
+        self.current_play.set(static_ids[0])
+        self.current_play.pack(fill=tk.X)
+        self.queue_len_var = tk.IntVar(value=3)
+        ttk.Label(live_frame, textvariable=self.queue_len_var).pack(anchor='w')
+        qbtns = ttk.Frame(live_frame)
+        qbtns.pack(fill=tk.X, pady=4)
+        ttk.Button(qbtns, text='REFRESH NOW', command=lambda: messagebox.showinfo('Refresh','Refresh (stub)')).pack(side=tk.LEFT, padx=2)
+        ttk.Button(qbtns, text='READ SELECTED NOW', command=lambda: messagebox.showinfo('Read','Read now (stub)')).pack(side=tk.LEFT, padx=2)
+        ttk.Button(qbtns, text='LOOP SELECTED', command=lambda: messagebox.showinfo('Loop','Loop (stub)')).pack(side=tk.LEFT, padx=2)
+        ttk.Button(qbtns, text='STOP LOOP', command=lambda: messagebox.showinfo('Stop','Stop (stub)')).pack(side=tk.LEFT, padx=2)
+
+        # Active Alerts list
+        alerts_frame = ttk.LabelFrame(right, text='Active Alerts')
+        alerts_frame.pack(fill=tk.BOTH, expand=True, pady=8)
+        self.alerts_list = tk.Listbox(alerts_frame, height=6)
+        self.alerts_list.insert(tk.END, 'ID123|Severe Thunderstorm Warning|NEW|Expires: 2026-08-19 20:00')
+        self.alerts_list.pack(fill=tk.BOTH, expand=True)
+        alert_btns = ttk.Frame(alerts_frame)
+        alert_btns.pack(fill=tk.X)
+        ttk.Button(alert_btns, text='REFRESH LIST', command=lambda: messagebox.showinfo('Refresh','Refresh list (stub)')).pack(side=tk.LEFT, padx=2)
+        ttk.Button(alert_btns, text='EDIT SELECTED', command=lambda: messagebox.showinfo('Edit','Edit (stub)')).pack(side=tk.LEFT, padx=2)
+        ttk.Button(alert_btns, text='SAME RETONE', command=lambda: messagebox.showinfo('Same','Retone (stub)')).pack(side=tk.LEFT, padx=2)
 
 
 class StationControllerWindow(tk.Toplevel):
     def __init__(self, parent, config):
         super().__init__(parent)
         self.title(f"BMH Station Controller - {config.get('station')}")
-        self.geometry('500x300')
+        self.geometry('600x400')
         ttk.Label(self, text=f"STATION: {config.get('station')} ONLINE", font=('Segoe UI', 11, 'bold')).pack(anchor='nw', padx=8, pady=6)
         ttk.Label(self, text=f"Location: {config.get('location')}").pack(anchor='nw', padx=8)
         ttk.Label(self, text=f"IP: {config.get('ip_address')}:{config.get('port')}").pack(anchor='nw', padx=8)
@@ -446,6 +544,18 @@ class StationControllerWindow(tk.Toplevel):
         ttk.Button(btn_frame, text='READ NOW', command=lambda: messagebox.showinfo('Read','Read now (stub)')).pack(side=tk.LEFT, padx=4)
         ttk.Button(btn_frame, text='LOOP PRODUCT', command=lambda: messagebox.showinfo('Loop','Loop (stub)')).pack(side=tk.LEFT, padx=4)
         ttk.Button(btn_frame, text='STOP LOOP', command=lambda: messagebox.showinfo('Stop','Stop (stub)')).pack(side=tk.LEFT, padx=4)
+
+        # Manual product control
+        prod_frame = ttk.LabelFrame(self, text='Manual Product Control')
+        prod_frame.pack(fill=tk.X, padx=8, pady=8)
+        ttk.Label(prod_frame, text='Product ID:').pack(anchor='w')
+        self.prod_entry = ttk.Entry(prod_frame)
+        self.prod_entry.pack(fill=tk.X)
+        btns = ttk.Frame(prod_frame)
+        btns.pack(fill=tk.X, pady=4)
+        ttk.Button(btns, text='READ NOW', command=lambda: messagebox.showinfo('Read','Read now (stub)')).pack(side=tk.LEFT, padx=2)
+        ttk.Button(btns, text='LOOP PRODUCT', command=lambda: messagebox.showinfo('Loop','Loop (stub)')).pack(side=tk.LEFT, padx=2)
+        ttk.Button(btns, text='STOP LOOP', command=lambda: messagebox.showinfo('Stop','Stop (stub)')).pack(side=tk.LEFT, padx=2)
 
 
 if __name__ == '__main__':

@@ -1,10 +1,19 @@
 {
   "ip_address": "192.168.10.144",
   "port": 6000,
-  "station": "WNG689",
+  "station": "WXK89",
   "location": "Valparaiso, Indiana",
   "network_status": "ONLINE (1)",
   "wfo": "KLOT",
+  "listening_area": {
+    "enable_filtering": true,
+    "allow_routine_without_fips": true,
+    "description": "Illinois and Indiana"
+  },
+  "sane_builder": {
+    "ugc_ne_il": "ILC123-ILC045-",
+    "ugc_nw_in": "INC001-INC003-"
+  },
   "default_awips": {
     "type": "TTAAii",
     "CCCC": "KLOT",

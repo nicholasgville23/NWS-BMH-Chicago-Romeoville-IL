@@ -1,15 +1,14 @@
-KLOT LOTIEM TEXT WORKSTATION GUI skeleton
+Updated KLOT LOTIEM TEXT WORKSTATION GUI skeleton
 
-Files added:
-- TEXT_WORKSTATION/config.json  (contains IP, port, station info)
-- TEXT_WORKSTATION/text_workstation_main.py  (Tkinter main app)
-- TEXT_WORKSTATION/web/index.html  (small web preview)
-- TEXT_WORKSTATION/web/app.js
+Files updated:
+- TEXT_WORKSTATION/config.json  (station changed to WXK89, added listening-area and sane_builder entries)
+- TEXT_WORKSTATION/text_workstation_main.py  (enhanced: SAME/EAS builder stub, listening area options, SAME retone/1050Hz buttons, broadcast modes UI, static messages list, live queue controls, SEND SANE ALERT)
+- TEXT_WORKSTATION/web/index.html  (default message updated)
 
 How to run:
 1. Open a terminal in the TEXT_WORKSTATION directory.
 2. Run: python text_workstation_main.py
 
 Notes:
-- This is a functional skeleton with many stubbed actions (dialogs and inserts). It implements the requested structure: AWIPS header, WarnGen/WatchGen dialogs, polygon tool, context menu for segments, and a BMH Network window with station controller.
-- Next steps: wire up backend networking, AWIPS header generation formats, WarnGen/WatchGen logic for UGC/ZONE/FIPS, transmission control, and integration with existing BMH services.
+- This keeps actions as stubs where external systems are required. It provides a more complete GUI surface matching the requested controls.
+- Next steps: wire SAME/EAS send to actual encoder, integrate START/STOP TX with station services, and implement product cycles persistence.
