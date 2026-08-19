@@ -1,7 +1,11 @@
 """
-KLOT LOTIEM TEXT WORKSTATION - Tkinter GUI Main (enhanced)
+KLOT LOTIEM TEXT WORKSTATION - Tkinter GUI Main (network-enabled)
 Run: python text_workstation_main.py
-This update adds: station WXK89, SAME/EAS builder stub, listening-area options, broadcast cycles UI, static messages list, live queue controls, SAME retone / 1050 Hz / Silent Interrupt stubs, and SEND SANE ALERT action.
+This update adds basic TCP network wiring to send messages to a BMH endpoint (config.json IP/port).
+- Non-blocking connect/send using threads
+- START TX / STOP TX / TRANSMIT buttons wired to network actions
+- Basic connection status reporting
+Security: this is a simple TCP client for lab/testing only. Do not connect to production devices without safeguards.
 """
 
 import json
@@ -9,6 +13,9 @@ import tkinter as tk
 from tkinter import ttk, simpledialog, messagebox
 from datetime import datetime
 import os
+import socket
+import threading
+import time
 
 BASE_DIR = os.path.dirname(__file__)
 CONFIG_PATH = os.path.join(BASE_DIR, 'config.json')
@@ -29,6 +36,11 @@ class TextWorkstationApp(tk.Tk):
         self.config = config
         self.title('KLOT LOTIEM TEXT WORKSTATION')
         self.geometry('1300x900')
+
+        # Networking state
+        self.bmh_sock = None
+        self.bmh_connected = False
+        self.bmh_lock = threading.Lock()
 
         self.create_menu()
         self.create_widgets()
@@ -184,6 +196,82 @@ class TextWorkstationApp(tk.Tk):
 
         self.text_widget.bind('<Button-3>', self.show_text_context)
 
+    # --- Networking ---
+    def bmh_connect(self):
+        """Connect to BMH endpoint (non-blocking thread)."""
+        if self.bmh_connected:
+            self.status('Already connected to BMH')
+            return
+        t = threading.Thread(target=self._bmh_connect_thread, daemon=True)
+        t.start()
+
+    def _bmh_connect_thread(self):
+        ip = self.config.get('ip_address')
+        port = int(self.config.get('port'))
+        self.status(f'Connecting to BMH {ip}:{port}...')
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(5)
+        try:
+            sock.connect((ip, port))
+            with self.bmh_lock:
+                self.bmh_sock = sock
+                self.bmh_connected = True
+            self.status(f'Connected to BMH {ip}:{port}')
+        except Exception as e:
+            try:
+                sock.close()
+            except: pass
+            self.status(f'BMH connect failed: {e}')
+
+    def bmh_disconnect(self):
+        with self.bmh_lock:
+            if self.bmh_sock:
+                try:
+                    self.bmh_sock.shutdown(socket.SHUT_RDWR)
+                except: pass
+                try:
+                    self.bmh_sock.close()
+                except: pass
+                self.bmh_sock = None
+            self.bmh_connected = False
+        self.status('Disconnected from BMH')
+
+    def bmh_send(self, data: str):
+        """Send data to BMH in a background thread."""
+        if not self.bmh_connected:
+            self.status('Not connected to BMH; starting connection and will send when connected')
+            # Connect then send
+            def connect_and_send():
+                self._bmh_connect_thread()
+                # Wait briefly for connection
+                for _ in range(10):
+                    with self.bmh_lock:
+                        if self.bmh_connected:
+                            break
+                    time.sleep(0.3)
+                with self.bmh_lock:
+                    if self.bmh_connected and self.bmh_sock:
+                        try:
+                            self.bmh_sock.sendall(data.encode('utf-8'))
+                            self.status('Message sent to BMH')
+                        except Exception as e:
+                            self.status(f'Failed to send: {e}')
+                    else:
+                        self.status('Unable to send: not connected')
+            threading.Thread(target=connect_and_send, daemon=True).start()
+            return
+
+        def send_thread():
+            with self.bmh_lock:
+                sock = self.bmh_sock
+            try:
+                sock.sendall(data.encode('utf-8'))
+                self.status('Message sent to BMH')
+            except Exception as e:
+                self.status(f'Failed to send: {e}')
+
+        threading.Thread(target=send_thread, daemon=True).start()
+
     # --- Actions / stubs ---
     def new_text_message(self):
         self.text_widget.delete('1.0', tk.END)
@@ -197,7 +285,6 @@ class TextWorkstationApp(tk.Tk):
         awips = self.config.get('default_awips', {})
         # Simple TTAAii-formatted header with current time (UTC) for TTAAii placeholder
         utc = datetime.utcnow()
-        # TTAAii - this is a simplified placeholder: TTAAii -> 'TTAA00' with hhmm
         ttaaii = f"TTAA{utc.strftime('%H%M')}"
         header = f"/{ttaaii} {awips.get('CCCC')} {awips.get('BBB')}{awips.get('BBB_version')}\nWSFO: {awips.get('wsfo_id')}\nProduct: {awips.get('product_designator')}\nAddressee: {self.addressee_entry.get()}"
         self.text_widget.insert('1.0', header + '\n\n')
@@ -322,10 +409,30 @@ class TextWorkstationApp(tk.Tk):
         # Build a simple SAME/EAS message preview using UGC entries
         ugc_ne = self.ugc_ne_entry.get().strip()
         ugc_nw = self.ugc_nw_entry.get().strip()
-        msg = f"SAME ALERT PREVIEW:\nNE IL: {ugc_ne}\nNW IN: {ugc_nw}\nCustom Message: {self.text_widget.get('1.0', '1.400').strip()}"
+        msg_preview = f"SAME ALERT PREVIEW:\nNE IL: {ugc_ne}\nNW IN: {ugc_nw}\nCustom Message: {self.text_widget.get('1.0', '1.400').strip()}"
         # placeholder for actual SAME send
-        messagebox.showinfo('SAME Alert', msg)
+        messagebox.showinfo('SAME Alert', msg_preview)
         self.status('SAME alert prepared (not transmitted)')
+
+    # High-level TX controls
+    def start_tx(self):
+        self.bmh_connect()
+
+    def stop_tx(self):
+        self.bmh_disconnect()
+
+    def transmit_text(self, text: str = None):
+        if text is None:
+            text = self.text_widget.get('1.0', tk.END).strip()
+        if not text:
+            messagebox.showwarning('Transmit', 'No text to transmit')
+            return
+        if not self.send_bmh_var.get():
+            messagebox.showinfo('Transmit', 'Send to BMH option is not checked')
+            return
+        # Mark message with simple delimiter for the receiver
+        payload = text + '\n\n<END_OF_MESSAGE>\n'
+        self.bmh_send(payload)
 
 
 # --- Dialogs ---
@@ -432,6 +539,7 @@ class HazardDialog(tk.Toplevel):
 class BMHNetworkWindow(tk.Toplevel):
     def __init__(self, parent, config):
         super().__init__(parent)
+        self.parent = parent
         self.title('BMH Network')
         self.geometry('1000x700')
         ttk.Label(self, text='BMH Network Controls', font=('Segoe UI', 12, 'bold')).pack(anchor='nw', padx=8, pady=6)
@@ -446,13 +554,13 @@ class BMHNetworkWindow(tk.Toplevel):
 
         ttk.Label(left, text='Hazard:').pack(anchor='nw', pady=4)
         for h in ['Severe Thunderstorm Warning','Tornado Warning','Flash Flood Warning','Special Weather Statement','Extreme Wind Warning']:
-            ttk.Button(left, text=h).pack(fill=tk.X, pady=1)
+            ttk.Button(left, text=h, command=lambda h=h: self.insert_hazard_to_text(h)).pack(fill=tk.X, pady=1)
 
         ttk.Label(left, text='Ticker Text:').pack(anchor='nw', pady=6)
         self.ticker_entry = ttk.Entry(left)
         self.ticker_entry.insert(0, 'Edit the BMH Network Ticker...')
         self.ticker_entry.pack(fill=tk.X)
-        ttk.Button(left, text='TRANSMIT', command=lambda: messagebox.showinfo('Transmit','Transmit (stub)')).pack(fill=tk.X, pady=6)
+        ttk.Button(left, text='TRANSMIT', command=self.transmit_ticker).pack(fill=tk.X, pady=6)
 
         ttk.Label(left, text='SAME Options').pack(anchor='nw', pady=4)
         same_frame = ttk.Frame(left)
@@ -474,10 +582,10 @@ class BMHNetworkWindow(tk.Toplevel):
         # Transmission controls
         tx_frame = ttk.LabelFrame(right, text='Primary Broadcast Control')
         tx_frame.pack(fill=tk.X, pady=8)
-        ttk.Button(tx_frame, text='START TX').pack(side=tk.LEFT, padx=4, pady=4)
-        ttk.Button(tx_frame, text='STOP TX').pack(side=tk.LEFT, padx=4, pady=4)
-        ttk.Button(tx_frame, text='NEXT PRODUCT').pack(side=tk.LEFT, padx=4, pady=4)
-        ttk.Button(tx_frame, text='RESTART SERVICE').pack(side=tk.LEFT, padx=4, pady=4)
+        ttk.Button(tx_frame, text='START TX', command=self.parent.start_tx).pack(side=tk.LEFT, padx=4, pady=4)
+        ttk.Button(tx_frame, text='STOP TX', command=self.parent.stop_tx).pack(side=tk.LEFT, padx=4, pady=4)
+        ttk.Button(tx_frame, text='NEXT PRODUCT', command=lambda: messagebox.showinfo('Next','Next product (stub)')).pack(side=tk.LEFT, padx=4, pady=4)
+        ttk.Button(tx_frame, text='RESTART SERVICE', command=lambda: messagebox.showinfo('Restart','Restart service (stub)')).pack(side=tk.LEFT, padx=4, pady=4)
 
         # Operational modes list
         modes_frame = ttk.LabelFrame(right, text='Operational Modes')
@@ -514,7 +622,7 @@ class BMHNetworkWindow(tk.Toplevel):
         qbtns = ttk.Frame(live_frame)
         qbtns.pack(fill=tk.X, pady=4)
         ttk.Button(qbtns, text='REFRESH NOW', command=lambda: messagebox.showinfo('Refresh','Refresh (stub)')).pack(side=tk.LEFT, padx=2)
-        ttk.Button(qbtns, text='READ SELECTED NOW', command=lambda: messagebox.showinfo('Read','Read now (stub)')).pack(side=tk.LEFT, padx=2)
+        ttk.Button(qbtns, text='READ SELECTED NOW', command=lambda: self.parent.transmit_text(self.current_play.get())).pack(side=tk.LEFT, padx=2)
         ttk.Button(qbtns, text='LOOP SELECTED', command=lambda: messagebox.showinfo('Loop','Loop (stub)')).pack(side=tk.LEFT, padx=2)
         ttk.Button(qbtns, text='STOP LOOP', command=lambda: messagebox.showinfo('Stop','Stop (stub)')).pack(side=tk.LEFT, padx=2)
 
@@ -530,10 +638,22 @@ class BMHNetworkWindow(tk.Toplevel):
         ttk.Button(alert_btns, text='EDIT SELECTED', command=lambda: messagebox.showinfo('Edit','Edit (stub)')).pack(side=tk.LEFT, padx=2)
         ttk.Button(alert_btns, text='SAME RETONE', command=lambda: messagebox.showinfo('Same','Retone (stub)')).pack(side=tk.LEFT, padx=2)
 
+    def insert_hazard_to_text(self, hazard):
+        self.parent.text_widget.insert(tk.END, f"\n[{hazard}]\n")
+        self.parent.status('Hazard inserted from BMH controls')
+
+    def transmit_ticker(self):
+        txt = self.ticker_entry.get().strip()
+        if not txt:
+            messagebox.showwarning('Transmit', 'Ticker is empty')
+            return
+        self.parent.transmit_text(txt)
+
 
 class StationControllerWindow(tk.Toplevel):
     def __init__(self, parent, config):
         super().__init__(parent)
+        self.parent = parent
         self.title(f"BMH Station Controller - {config.get('station')}")
         self.geometry('600x400')
         ttk.Label(self, text=f"STATION: {config.get('station')} ONLINE", font=('Segoe UI', 11, 'bold')).pack(anchor='nw', padx=8, pady=6)

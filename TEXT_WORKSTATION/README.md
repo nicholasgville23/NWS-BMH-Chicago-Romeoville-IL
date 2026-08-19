@@ -1,14 +1,15 @@
-Updated KLOT LOTIEM TEXT WORKSTATION GUI skeleton
+Updated README: added note about network transmit test
 
-Files updated:
-- TEXT_WORKSTATION/config.json  (station changed to WXK89, added listening-area and sane_builder entries)
-- TEXT_WORKSTATION/text_workstation_main.py  (enhanced: SAME/EAS builder stub, listening area options, SAME retone/1050Hz buttons, broadcast modes UI, static messages list, live queue controls, SEND SANE ALERT)
-- TEXT_WORKSTATION/web/index.html  (default message updated)
+How to run the network-enabled GUI:
+1. Ensure config.json contains the correct ip_address and port for testing (default 192.168.10.144:6000).
+2. Open a terminal in TEXT_WORKSTATION/
+3. Run: python text_workstation_main.py
 
-How to run:
-1. Open a terminal in the TEXT_WORKSTATION directory.
-2. Run: python text_workstation_main.py
+Test transmit flow:
+- Open BMH Network window, click START TX to connect (non-blocking)
+- Enter or paste text in the main editor or ticker box
+- Press TRANSMIT in the BMH Network window or use the Station Controller's controls to READ/LOOP
 
 Notes:
-- This keeps actions as stubs where external systems are required. It provides a more complete GUI surface matching the requested controls.
-- Next steps: wire SAME/EAS send to actual encoder, integrate START/STOP TX with station services, and implement product cycles persistence.
+- This implementation uses a simple TCP client (socket). It is intended for lab testing only. The message payload is sent as UTF-8 with a trailing delimiter <END_OF_MESSAGE>.
+- When connecting to real broadcast devices, add authentication and secure network controls.
