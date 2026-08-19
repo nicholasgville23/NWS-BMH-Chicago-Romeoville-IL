@@ -1,0 +1,17 @@
+{
+  "ip_address": "192.168.10.144",
+  "port": 6000,
+  "station": "WNG689",
+  "location": "Valparaiso, Indiana",
+  "network_status": "ONLINE (1)",
+  "wfo": "KLOT",
+  "default_awips": {
+    "type": "TTAAii",
+    "CCCC": "KLOT",
+    "BBB": "NOR",
+    "BBB_version": "A",
+    "wsfo_id": "CHI",
+    "product_designator": "LOT",
+    "addressee": "ALL"
+  }
+}
