@@ -1,0 +1,70 @@
+{
+  "app": "KLOT | LOTIEM",
+  "framework": {
+    "sender": "LOTWPS — LOT Weather Processing System",
+    "receiver": "LOTIEM — Lewis O'Hare Terminal Integrated Emergency Manager",
+    "legacy_name": "Lewis O'Hare Terminal Iowa Environmental Mesonet",
+    "region": "Fictional Illinois and Indiana operational region"
+  },
+  "ip_address": "192.168.10.144",
+  "port": 6000,
+  "station_id": "WXK89",
+  "station_location": "Valparaiso, Indiana",
+  "frequency_mhz": "162.400",
+  "network_status": "ONLINE (1)",
+  "wfo": "LOT",
+  "awips": {
+    "type": "TTAAii",
+    "CCCC": "KLOT",
+    "BBB": "NOR",
+    "bbb_version": "A",
+    "wsfo_id": "CHI",
+    "product_category": "Weather/EAS",
+    "product_designator": "LOT",
+    "addressee": "ALL"
+  },
+  "message_options": {
+    "send_to_bmh": true,
+    "send_to_email": false,
+    "send_to_iembot": false,
+    "send_to_websites_outlets": false,
+    "wrap_chat_edits_character": true
+  },
+  "hazards": [
+    "Severe Thunderstorm Warning",
+    "Tornado Warning",
+    "Flash Flood Warning",
+    "Special Weather Statement",
+    "Extreme Wind Warning"
+  ],
+  "listening_area": {
+    "description": "Illinois and Indiana",
+    "enable_filtering": true,
+    "allow_routine_without_fips": true,
+    "ugc_ne_il": "ILC-",
+    "ugc_nw_in": "INC-"
+  },
+  "operational_modes": [
+    "Winter Weather",
+    "Flooding",
+    "Severe Weather",
+    "Severe Weather Possible",
+    "Off the Air",
+    "Station ID Only",
+    "Current Time Only",
+    "General",
+    "Zone Forecast",
+    "Severe Weather and Alert Summary"
+  ],
+  "cycle_entries": [
+    "@AUTO_ID",
+    "@ACTIVE_ALERTS",
+    "@SEVERE_DYNAMIC",
+    "@PRODUCT:VPZZFP",
+    "@PRODUCT:HWOLOT",
+    "@PRODUCT:HWOIWX",
+    "@AUTO_SEVERE_ID",
+    "@NEW_CON_ALERTS",
+    "@CAN_EXP_ALERTS"
+  ]
+}
